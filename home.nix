@@ -3,7 +3,9 @@
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
   makeLink = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
-  unstable = import <unstable> {};
+  unstable = import <unstable> {
+    config.allowUnfree = true;    
+  };
 in
 {
 
@@ -106,7 +108,7 @@ in
     vscode-langservers-extracted
   ] ++ 
     (if stdenv.isLinux then
-      [ distrobox usbimager heaptrack ] 
+      [ distrobox usbimager heaptrack unstable.code-cursor ] 
     else if stdenv.isDarwin then
       [ ]
     else throw "Unknown OS")
