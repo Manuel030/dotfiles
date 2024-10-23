@@ -1,0 +1,17 @@
+theme = "default-transparent"
+
+[editor]
+bufferline = "always"
+
+[editor.file-picker]
+hidden = false
+
+[keys.normal]
+tab = ":buffer-next"
+S-tab = ":buffer-previous"
+C-w = ":buffer-close"
+C-s = ":write"
+C-j = "save_selection"
+
+[editor.lsp]
+display-inlay-hints = true
