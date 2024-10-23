@@ -7,8 +7,8 @@ let
 in
 {
 
-  home.username = "wavify";
-  home.homeDirectory = "/Users/wavify";
+  home.username = "manuel";
+  home.homeDirectory = "/Users/manuel";
 
   home.stateVersion = "24.05";
 
