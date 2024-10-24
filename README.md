@@ -8,12 +8,11 @@ To set up these dotfiles on a new system, follow these steps:
 
 1. Install Nix if it's not already installed on your system.
 
-2. Add the necessary channels:
+2. Install Home Manager.
+
+3. Run
 
 
 ```
-nix-channel --add https://nixos.org/channels/nixpkgs-24.05-darwin nixpkgs
-nix-channel --add https://nixos.org/channels/nixpkgs-unstable unstable
-nix-channel --add https://github.com/nix-community/home-manager/archive/release-24.05.tar.gz home-manager
-nix-channel --update
+home-manager switch --flake ~/path/to/directory/containing/flake/
 ```

@@ -1,11 +1,8 @@
-{ pkgs, config,  ... }:
+{ pkgs, unstable, config,  ... }:
 
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
   makeLink = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
-  unstable = import <unstable> {
-    config.allowUnfree = true;    
-  };
 in
 {
 
@@ -119,7 +116,7 @@ in
     "," = ''f() { nix run nixpkgs#"$1" -- "{@:2}" ; }; f'';
     "shell" = ''f() { nix shell $(printf "nixpkgs#%s" "$@") ; }; f'';
     # "system" = ''sudo nixos-rebuild switch --flake ~/.machines#helium'';
-    "home" = ''home-manager switch -f ~/Projects/dotfiles/home.nix'';
+    "home" = ''home-manager switch --flake ~/Projects/dotfiles/'';
     "dcu" = ''docker compose up'';
     "dcd" = ''docker compose down'';
   };
