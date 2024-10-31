@@ -32,6 +32,9 @@ in
       # Apple ships ancient bash so we need this fix on macOS
       # https://github.com/nix-community/home-manager/issues/3133
       enableCompletion = false;
+      bashrcExtra = ''
+        export PATH="$HOME/.rye/shims:$PATH"
+      '';
     };
     fzf = {
       enable = true;
@@ -84,6 +87,7 @@ in
     lazydocker
     tealdeer
     (python312.withPackages (ps: with ps; [ numpy pytest pylint black isort python-lsp-server ]))
+    rye
     unstable.uv
     kubectl
     gnumake
