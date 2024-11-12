@@ -23,6 +23,8 @@ in
     "helix/themes/default-transparent.toml".source = makeLink "helix/default-transparent.toml";
     "kitty/kitty.conf".source = makeLink "kitty.conf";
     "starship.toml".source = makeLink "starship.toml";
+    # tiling window manager for macOs
+    "aerospace/aerospace.toml".source = makeLink "aerospace.toml";
   };
 
   programs = {
@@ -100,6 +102,7 @@ in
     jless
     nixpkgs-fmt
     tree
+    btop
 
     # language servers
     nodePackages_latest.typescript-language-server
@@ -111,7 +114,7 @@ in
     (if stdenv.isLinux then
       [ distrobox usbimager heaptrack unstable.code-cursor ] 
     else if stdenv.isDarwin then
-      [ ]
+      [ unstable.aerospace ]
     else throw "Unknown OS")
   ;
 
