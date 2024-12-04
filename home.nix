@@ -22,6 +22,7 @@ in
     "helix/languages.toml".source = makeLink "helix/languages.toml";
     "helix/themes/default-transparent.toml".source = makeLink "helix/default-transparent.toml";
     "kitty/kitty.conf".source = makeLink "kitty.conf";
+    "nvim/lua/settings.lua".source = makeLink "neovim.lua";
     "starship.toml".source = makeLink "starship.toml";
     # tiling window manager for macOs
     "aerospace/aerospace.toml".source = makeLink "aerospace.toml";
@@ -66,17 +67,25 @@ in
     nix-index.enable = true;
     starship = {
       enable = true;
-      # settings = {
-      #   username.show_always = true;
-      #   username.format = "[$user](bold red) ";
-      #   hostname.ssh_only = false;
-      #   hostname.format = "at [$hostname](bold blue) ";
-      #   directory.format = "in [$path]($style)[$read_only]($read_only_style) ";
-      #   git_branch.format = "on [$branch](bold green) ";
-      #   character.format = "> ";
-      # };
     };
     zoxide.enable = true;
+    neovim = {
+      enable = true;
+      extraConfig = ''
+        luafile ${config.xdg.configHome}/nvim/lua/settings.lua
+      '';
+    plugins = with pkgs.vimPlugins; [
+      telescope-nvim
+      bufferline-nvim
+      nvim-web-devicons
+      catppuccin-nvim
+      nvim-tree-lua
+      comment-nvim
+      nvim-lspconfig
+      nvim-treesitter.withAllGrammars
+      nvim-treesitter-textobjects
+      ];
+    };
   };
 
   home.packages = with pkgs; [
@@ -89,6 +98,7 @@ in
     vscode
     helix
     kitty
+    (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
 
     # tools
     lazydocker
@@ -109,8 +119,10 @@ in
     nixpkgs-fmt
     tree
     btop
+    ctop
 
     # language servers
+    nodePackages_latest.pyright
     nodePackages_latest.typescript-language-server
     nodePackages_latest.svelte-language-server
     nil
