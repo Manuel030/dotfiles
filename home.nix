@@ -9,7 +9,7 @@ in
   home.username = "manuel";
   home.homeDirectory = "/Users/manuel";
 
-  home.stateVersion = "24.05";
+  home.stateVersion = "24.11";
 
   nixpkgs.config.allowUnfree = true;
   # workaround from nix-community/home-manager/issues/2942
@@ -84,6 +84,8 @@ in
       nvim-lspconfig
       nvim-treesitter.withAllGrammars
       nvim-treesitter-textobjects
+      nvim-cmp
+      avante-nvim
       ];
     };
   };
@@ -105,7 +107,8 @@ in
     tealdeer
     (python312.withPackages (ps: with ps; [ numpy pytest pylint black isort python-lsp-server ]))
     rye
-    unstable.uv
+    poetry
+    uv
     kubectl
     gnumake
     baobab
@@ -116,16 +119,16 @@ in
     dive
     jless
     jq
-    nixpkgs-fmt
     tree
     btop
     ctop
 
     # language servers
-    nodePackages_latest.pyright
+    pyright
     nodePackages_latest.typescript-language-server
     nodePackages_latest.svelte-language-server
     nil
+    nixpkgs-fmt
     elmPackages.elm-language-server
     vscode-langservers-extracted
   ] ++ 
