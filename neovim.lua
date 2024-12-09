@@ -5,6 +5,10 @@ vim.opt.number = true
 local map = vim.keymap.set
 
 vim.g.mapleader = " "
+map('n', '<leader>y', '"+y', { desc = 'Yank to system clipboard' })
+map('v', '<leader>y', '"+y', { desc = 'Yank selection to system clipboard' })
+map('n', '<leader>p', '"+p', { desc = 'Paste from system clipboard' })
+map('v', '<leader>p', '"+p', { desc = 'Paste from system clipboard' })
 map('n', '<Tab>', ':bnext<CR>')
 map('n', '<S-Tab>', ':bprevious<CR>')
 map('n', '<C-s>', ':w<CR>')
@@ -21,8 +25,16 @@ map('n', 'gd', vim.lsp.buf.definition, { desc = 'Go to definition' })
 
 -- Plugins
 
+require('telescope').setup{
+	pickers = {
+		find_files = {
+			hidden = true
+		}
+	}
+}
 local builtin = require('telescope.builtin')
 map('n', '<leader>f', builtin.find_files, { desc = 'Telescope find files' })
+map('n', '<leader>b', builtin.buffers, { desc = 'Telescope buffers' })
 
 -- vim.opt.termguicolors = true
 require("bufferline").setup{

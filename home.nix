@@ -86,6 +86,7 @@ in
       nvim-treesitter-textobjects
       nvim-cmp
       avante-nvim
+      diffview-nvim
       ];
     };
   };
