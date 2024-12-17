@@ -1,5 +1,11 @@
 vim.opt.number = true
 
+-- Tab settings
+vim.opt.expandtab = true      -- Convert tabs to spaces
+vim.opt.tabstop = 4           -- Number of spaces tabs count for
+vim.opt.softtabstop = 4       -- Number of spaces that a <Tab> counts for while performing editing operations
+vim.opt.shiftwidth = 4        -- Number of spaces used for autoindent
+
 -- Mappings
 
 local map = vim.keymap.set
@@ -14,7 +20,8 @@ map('n', '<S-Tab>', ':bprevious<CR>')
 map('n', '<C-s>', ':w<CR>')
 map('n', '<C-w>', ':bd<CR>')
 map('n', 'ge', 'G', { desc = 'Go to file end' })
-map('n', 'gh', '0', { desc = 'Go to file start' })
+map('v', 'ge', 'G', { desc = 'Go to file end' })
+map('n', 'gh', '0', { desc = 'Go to line start' })
 map('n', 'gl', '$', { desc = 'Go to line end' })
 map('v', 'gl', '$', { desc = 'Go to line end' })
 map('n', 'd', 'x', { desc = 'Delete' })
@@ -72,7 +79,7 @@ require('catppuccin').setup({
 	})
 vim.cmd.colorscheme "catppuccin"
 
-
+require('gitblame')
 
 -- LSP Config
 
