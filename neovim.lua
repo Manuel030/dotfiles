@@ -42,6 +42,7 @@ require('telescope').setup{
 local builtin = require('telescope.builtin')
 map('n', '<leader>f', builtin.find_files, { desc = 'Telescope find files' })
 map('n', '<leader>b', builtin.buffers, { desc = 'Telescope buffers' })
+map('n', '<leader>g', builtin.live_grep, { desc = 'Telescope live grep' })
 
 -- vim.opt.termguicolors = true
 require("bufferline").setup{
@@ -68,7 +69,6 @@ require('avante').setup ({
 -- disable netrw at the very start of init.lua
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
--- TODO: raises an error on start up
 require('nvim-tree').setup()
 
 require('Comment').setup()

@@ -111,6 +111,8 @@ in
     rye
     poetry
     uv
+    nodejs
+    pnpm
     kubectl
     gnumake
     baobab
@@ -124,6 +126,7 @@ in
     tree
     btop
     ctop
+    ripgrep
 
     # language servers
     pyright
