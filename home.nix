@@ -84,10 +84,16 @@ in
       nvim-lspconfig
       nvim-treesitter.withAllGrammars
       nvim-treesitter-textobjects
+      cmp-nvim-lsp
       nvim-cmp
+      cmp-buffer
+      cmp-path
+      luasnip
+      cmp_luasnip
       avante-nvim
       diffview-nvim
       git-blame-nvim
+      vim-visual-multi
       ];
     };
   };
@@ -97,6 +103,7 @@ in
     audacity
     google-chrome
     slack
+    postman
 
     # shells and editors
     vscode
