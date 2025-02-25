@@ -134,6 +134,7 @@ in
     btop
     ctop
     ripgrep
+    md-tui
 
     # language servers
     pyright

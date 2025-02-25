@@ -132,7 +132,15 @@ cmp.setup({
 })
 require('avante_lib').load()
 require('avante').setup ({
-  -- Your config here!
+  provider = "claude",
+  auto_suggestions_provider = "claude",
+  claude = {
+    endpoint = "https://api.anthropic.com",
+    model = "claude-3-7-sonnet-20250219",
+    timeout = 30000, -- Timeout in milliseconds
+    temperature = 0,
+    max_tokens = 8000,
+  },
 })
 
 
