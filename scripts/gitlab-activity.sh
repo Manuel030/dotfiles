@@ -3,29 +3,39 @@ then
   echo "No GITLAB_TOKEN provided"
   exit 1;
 fi;
-read -p "Enter date difference to today: " DAYS
-AFTER_DATE=$(date -v-"$(($DAYS+1))"d +%Y-%m-%d)
-if [ $DAYS == 1 ]
-then
-  BEFORE_DATE=$(date +%Y-%m-%d);
-elif [ $DAYS == 0 ]
-then
-  BEFORE_DATE=$(date -v+1d +%Y-%m-%d);
-else
-  BEFORE_DATE=$(date -v-"$(($DAYS-1))"d +%Y-%m-%d);
-fi;
-echo "Querying activity after $AFTER_DATE and before $BEFORE_DATE"
-GITLAB_USER="manuelpland"
-COMMIT_LOG=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "https://gitlab.com/api/v4/users/$GITLAB_USER/events?after=$AFTER_DATE&before=$BEFORE_DATE&per_page=100" \
-  | jq '.[] | { action: .action_name, description: (if .target_title != null then .target_title elif .push_data != null then .push_data.commit_title elif .note != null then .note.body else "No title" end), branch: (if .action_name == "pushed to" then .push_data.ref else "no code change" end)}')
 
-echo "Your commit log"
-echo $COMMIT_LOG | jq
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <date>"
+  echo "Date must be in ISO 8601 format (YYYY-MM-DD)"
+  exit 1
+fi
+
+ISO_DATE=$1
+
+# Validate the date format
+if [[ ! $ISO_DATE =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  echo "Invalid date format. Please use YYYY-MM-DD format."
+  exit 1
+fi
+
+# Set the date range to one day
+AFTER_DATE=$(date -v-1d -j -f "%Y-%m-%d" "$ISO_DATE" +%Y-%m-%d)
+BEFORE_DATE=$(date -v+1d -j -f "%Y-%m-%d" "$ISO_DATE" +%Y-%m-%d)
+
+#echo "Querying activity on $ISO_DATE (from $AFTER_DATE to $BEFORE_DATE)"
+GITLAB_USER="manuelpland"
+COMMIT_LOG=$(curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" "https://gitlab.com/api/v4/users/$GITLAB_USER/events?after=$AFTER_DATE&before=$BEFORE_DATE&per_page=100")
+
+#echo $COMMIT_LOG
+
+if [[ "$COMMIT_LOG" == "[]" ]]; then
+  exit 0
+fi
 
 PROMPT="Describe the programmers work based on the commit log in a concise manner. Only do the task without any introductions and write from the programmers perspective. Dont do any formatting. $COMMIT_LOG"
 
 PAYLOAD=$(jq -n \
-  --arg model "llama3-8b-8192" \
+  --arg model "openai/gpt-4o" \
   --arg content "$PROMPT" \
   '{
     model: $model,
@@ -38,8 +48,7 @@ PAYLOAD=$(jq -n \
   }'
 )
 
-echo "Your summary"
-curl https://api.groq.com/openai/v1/chat/completions -s \
+curl -s https://openrouter.ai/api/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $GROQ_API_KEY" \
+  -H "Authorization: Bearer $OPENROUTER_API_KEY" \
   -d "$PAYLOAD" | jq .choices[0].message.content

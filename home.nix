@@ -1,4 +1,4 @@
-{ pkgs, unstable, config,  ... }:
+{ pkgs, unstable, config, ... }:
 
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
@@ -37,6 +37,7 @@ in
       enableCompletion = false;
       bashrcExtra = ''
         export PATH="$HOME/.rye/shims:$PATH"
+        export PATH=/opt/homebrew/bin:$PATH
 
         set -a
         if [ -f "$HOME/Projects/dotfiles/.secrets" ]; then
@@ -61,6 +62,7 @@ in
       aliases = {
         a = "add";
         c = "commit";
+        s = "status";
         fomo = "fetch origin main && git rebase origin/main";
       };
     };
@@ -114,16 +116,18 @@ in
     # tools
     lazydocker
     tealdeer
-    (python312.withPackages (ps: with ps; [ numpy pytest pylint black isort python-lsp-server ]))
+    (python312.withPackages (ps: with ps; [ numpy pytest pylint black isort python-lsp-server pydantic ]))
     rye
     poetry
     uv
+    rustup
     nodejs
     pnpm
     kubectl
     gnumake
     baobab
     ngrok
+    cloudflared
     scrcpy
     hyperfine
     bat
@@ -135,6 +139,7 @@ in
     ctop
     ripgrep
     md-tui
+    bruno
 
     # language servers
     pyright
