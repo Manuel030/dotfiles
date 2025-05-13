@@ -108,7 +108,8 @@ in
     postman
 
     # shells and editors
-    vscode
+    unstable.vscode
+    unstable.zed-editor
     helix
     kitty
     (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
@@ -151,7 +152,7 @@ in
     vscode-langservers-extracted
   ] ++ 
     (if stdenv.isLinux then
-      [ distrobox usbimager heaptrack unstable.code-cursor ] 
+      [ distrobox usbimager heaptrack ] 
     else if stdenv.isDarwin then
       [ unstable.aerospace ]
     else throw "Unknown OS")

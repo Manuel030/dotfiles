@@ -13,8 +13,8 @@
   outputs = { nixpkgs, nixpkgs-unstable, home-manager, ... }:
     let
       system = "aarch64-darwin";
-      pkgs = import nixpkgs { inherit system; };
-      unstable = import nixpkgs-unstable { inherit system; };
+      pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
+      unstable = import nixpkgs-unstable { inherit system; config.allowUnfree = true; };
     in
     {
       defaultPackage.aarch64-darwin = home-manager.defaultPackage.aarch64-darwin;
