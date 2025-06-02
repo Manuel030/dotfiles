@@ -9,7 +9,7 @@ in
   home.username = "manuel";
   home.homeDirectory = "/Users/manuel";
 
-  home.stateVersion = "24.11";
+  home.stateVersion = "25.05";
 
   nixpkgs.config.allowUnfree = true;
   # workaround from nix-community/home-manager/issues/2942
@@ -112,7 +112,7 @@ in
     unstable.zed-editor
     helix
     kitty
-    (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
+    nerd-fonts.jetbrains-mono
 
     # tools
     lazydocker
