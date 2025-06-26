@@ -93,6 +93,7 @@ in
       luasnip
       cmp_luasnip
       avante-nvim
+      copilot-vim
       diffview-nvim
       git-blame-nvim
       vim-visual-multi
@@ -104,12 +105,12 @@ in
     # gui
     audacity
     google-chrome
+    brave
     slack
     postman
 
     # shells and editors
     unstable.vscode
-    unstable.zed-editor
     helix
     kitty
     nerd-fonts.jetbrains-mono
