@@ -142,6 +142,7 @@ in
     ripgrep
     md-tui
     bruno
+    yazi
 
     # language servers
     pyright
