@@ -108,6 +108,7 @@ in
     brave
     slack
     postman
+    obsidian
 
     # shells and editors
     unstable.vscode
@@ -122,6 +123,7 @@ in
     rye
     poetry
     uv
+    rustc
     rustup
     nodejs
     pnpm
@@ -143,6 +145,8 @@ in
     md-tui
     bruno
     yazi
+    awscli2
+    awslogs
 
     # language servers
     pyright
