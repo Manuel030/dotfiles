@@ -9,7 +9,7 @@ in
   home.username = "manuel";
   home.homeDirectory = "/Users/manuel";
 
-  home.stateVersion = "25.05";
+  home.stateVersion = "25.11";
 
   nixpkgs.config.allowUnfree = true;
   # workaround from nix-community/home-manager/issues/2942
@@ -54,17 +54,19 @@ in
       nix-direnv.enable = true;
     };
     git = {
-      userName = "Manuel Plank";
-      userEmail = "manuelenrique.plank@gmail.com";
+      settings = {
+        user.name = "Manuel Plank";
+        user.email = "manuelenrique.plank@gmail.com";
+        aliases = {
+          a = "add";
+          c = "commit";
+          s = "status";
+          fomo = "fetch origin main && git rebase origin/main";
+        };
+      };
       enable = true;
       lfs.enable = true;
       ignores = [ ".vscode" ];
-      aliases = {
-        a = "add";
-        c = "commit";
-        s = "status";
-        fomo = "fetch origin main && git rebase origin/main";
-      };
     };
     nix-index.enable = true;
     starship = {
