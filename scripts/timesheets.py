@@ -24,7 +24,7 @@ HOURS_PER_DAY = 8
 
 # Environment Variables
 GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 HARVEST_PAT = os.getenv("HARVEST_PAT")
 
 
@@ -35,8 +35,8 @@ def get_gitlab_activity(target_date: date) -> str:
     if not GITLAB_TOKEN:
         print("Error: No GITLAB_TOKEN provided in environment.", file=sys.stderr)
         sys.exit(1)
-    if not OPENROUTER_API_KEY:
-        print("Error: No OPENROUTER_API_KEY provided in environment.", file=sys.stderr)
+    if not GEMINI_API_KEY:
+        print("Error: No GEMINI_API_KEY provided in environment.", file=sys.stderr)
         sys.exit(1)
 
     after_date = target_date - timedelta(days=1)
@@ -68,15 +68,15 @@ def get_gitlab_activity(target_date: date) -> str:
             f"{json.dumps(commit_log)}"
         )
         payload = {
-            "model": "openai/gpt-oss-20b:free",
+            "model": "gemini-2.5-flash",
             "messages": [{"role": "user", "content": prompt}],
         }
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Authorization": f"Bearer {GEMINI_API_KEY}",
         }
         response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
             headers=headers,
             json=payload,
             timeout=20,

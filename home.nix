@@ -38,6 +38,7 @@ in
       bashrcExtra = ''
         export PATH="$HOME/.rye/shims:$PATH"
         export PATH=/opt/homebrew/bin:$PATH
+        export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 
         set -a
         if [ -f "$HOME/Projects/dotfiles/.secrets" ]; then
@@ -117,13 +118,13 @@ in
     helix
     kitty
     nerd-fonts.jetbrains-mono
+    # antigravity
 
     # tools
     lazydocker
     tealdeer
     (python312.withPackages (ps: with ps; [ numpy pytest pylint black isort python-lsp-server pydantic ]))
     rye
-    poetry
     uv
     rustc
     rustup
@@ -132,8 +133,6 @@ in
     kubectl
     gnumake
     baobab
-    ngrok
-    cloudflared
     scrcpy
     hyperfine
     bat
@@ -150,13 +149,16 @@ in
     awscli2
     awslogs
 
+    # networking
+    nmap
+    ngrok
+    cloudflared
+
     # language servers
     pyright
     nodePackages_latest.typescript-language-server
-    nodePackages_latest.svelte-language-server
     nil
     nixpkgs-fmt
-    elmPackages.elm-language-server
     vscode-langservers-extracted
   ] ++ 
     (if stdenv.isLinux then
