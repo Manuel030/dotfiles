@@ -123,7 +123,8 @@ in
     # tools
     lazydocker
     tealdeer
-    (python312.withPackages (ps: with ps; [ numpy pytest pylint black isort python-lsp-server pydantic ]))
+    (python313.withPackages (ps: with ps; [ numpy pytest pylint black isort python-lsp-server pydantic ]))
+    poetry
     rye
     uv
     rustc
@@ -148,6 +149,7 @@ in
     yazi
     awscli2
     awslogs
+    rclone
 
     # networking
     nmap
