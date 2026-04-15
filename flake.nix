@@ -8,9 +8,13 @@
       url = "github:nix-community/home-manager/release-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    opencode = {
+      url = "github:anomalyco/opencode";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
   };
 
-  outputs = { nixpkgs, nixpkgs-unstable, home-manager, ... }:
+  outputs = { nixpkgs, nixpkgs-unstable, home-manager, opencode, ... }:
     let
       system = "aarch64-darwin";
       pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
@@ -22,7 +26,7 @@
       homeConfigurations = {
         "manuel" = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
-          extraSpecialArgs = { inherit unstable; };
+          extraSpecialArgs = { inherit unstable opencode; };
 
           modules = [ ./home.nix ];
         };

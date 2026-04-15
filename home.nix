@@ -1,4 +1,4 @@
-{ pkgs, unstable, config, ... }:
+{ pkgs, unstable, opencode, config, ... }:
 
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
@@ -120,7 +120,7 @@ in
     kitty
     nerd-fonts.jetbrains-mono
     claude-code
-    unstable.opencode
+    opencode.packages.${pkgs.stdenv.system}.default
     # antigravity
 
     # tools
