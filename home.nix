@@ -52,6 +52,7 @@ in
     };
     direnv = {
       enable = true;
+      package = unstable.direnv;
       nix-direnv.enable = true;
     };
     git = {
@@ -114,10 +115,12 @@ in
     obsidian
 
     # shells and editors
-    unstable.vscode
+    vscode
     helix
     kitty
     nerd-fonts.jetbrains-mono
+    claude-code
+    unstable.opencode
     # antigravity
 
     # tools
@@ -150,6 +153,7 @@ in
     awscli2
     awslogs
     rclone
+    terraform
 
     # networking
     nmap
