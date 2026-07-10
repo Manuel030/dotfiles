@@ -9,7 +9,7 @@ in
   home.username = "manuel";
   home.homeDirectory = "/Users/manuel";
 
-  home.stateVersion = "25.11";
+  home.stateVersion = "26.05";
 
   nixpkgs.config.allowUnfree = true;
   # workaround from nix-community/home-manager/issues/2942
@@ -22,7 +22,7 @@ in
     "helix/languages.toml".source = makeLink "helix/languages.toml";
     "helix/themes/default-transparent.toml".source = makeLink "helix/default-transparent.toml";
     "kitty/kitty.conf".source = makeLink "kitty.conf";
-    "nvim".source = makeLink "nvchad";
+    "nvim/lua".source = makeLink "nvchad/lua";
     "starship.toml".source = makeLink "starship.toml";
     # tiling window manager for macOs
     "aerospace/aerospace.toml".source = makeLink "aerospace.toml";
@@ -78,8 +78,11 @@ in
     zoxide.enable = true;
     neovim = {
       enable = true;
-      # NvChad config is symlinked via xdg.configFile."nvim"
+      withRuby = false;
+      withPython3 = false;
+      # NvChad config: init.lua loaded here, lua/ symlinked via xdg.configFile
       # Plugins are managed by lazy.nvim, not Nix
+      initLua = builtins.readFile ./nvchad/init.lua;
     };
   };
 
@@ -117,7 +120,6 @@ in
     maven
     tree-sitter
     gcc
-    baobab
     scrcpy
     hyperfine
     bat
@@ -146,7 +148,7 @@ in
 
     # language servers
     pyright
-    nodePackages_latest.typescript-language-server
+    typescript-language-server
     nil
     nixpkgs-fmt
     vscode-langservers-extracted
