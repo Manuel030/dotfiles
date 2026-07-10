@@ -1,4 +1,4 @@
-{ pkgs, unstable, opencode, config, ... }:
+{ pkgs, unstable, config, ... }:
 
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
@@ -22,7 +22,7 @@ in
     "helix/languages.toml".source = makeLink "helix/languages.toml";
     "helix/themes/default-transparent.toml".source = makeLink "helix/default-transparent.toml";
     "kitty/kitty.conf".source = makeLink "kitty.conf";
-    "nvim/lua/settings.lua".source = makeLink "neovim.lua";
+    "nvim".source = makeLink "nvchad";
     "starship.toml".source = makeLink "starship.toml";
     # tiling window manager for macOs
     "aerospace/aerospace.toml".source = makeLink "aerospace.toml";
@@ -39,6 +39,7 @@ in
         export PATH="$HOME/.rye/shims:$PATH"
         export PATH=/opt/homebrew/bin:$PATH
         export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+        export PATH="$HOME/.local/bin:$PATH"
 
         set -a
         if [ -f "$HOME/Projects/dotfiles/.secrets" ]; then
@@ -77,31 +78,8 @@ in
     zoxide.enable = true;
     neovim = {
       enable = true;
-      extraConfig = ''
-        luafile ${config.xdg.configHome}/nvim/lua/settings.lua
-      '';
-    plugins = with pkgs.vimPlugins; [
-      telescope-nvim
-      bufferline-nvim
-      nvim-web-devicons
-      catppuccin-nvim
-      nvim-tree-lua
-      comment-nvim
-      nvim-lspconfig
-      nvim-treesitter.withAllGrammars
-      nvim-treesitter-textobjects
-      cmp-nvim-lsp
-      nvim-cmp
-      cmp-buffer
-      cmp-path
-      luasnip
-      cmp_luasnip
-      avante-nvim
-      copilot-vim
-      diffview-nvim
-      git-blame-nvim
-      vim-visual-multi
-      ];
+      # NvChad config is symlinked via xdg.configFile."nvim"
+      # Plugins are managed by lazy.nvim, not Nix
     };
   };
 
@@ -110,7 +88,7 @@ in
     audacity
     google-chrome
     brave
-    slack
+    unstable.slack
     postman
     obsidian
 
@@ -120,7 +98,7 @@ in
     kitty
     nerd-fonts.jetbrains-mono
     claude-code
-    opencode.packages.${pkgs.stdenv.system}.default
+    # opencode.packages.${pkgs.stdenv.system}.default
     # antigravity
 
     # tools
@@ -136,6 +114,9 @@ in
     pnpm
     kubectl
     gnumake
+    maven
+    tree-sitter
+    gcc
     baobab
     scrcpy
     hyperfine
@@ -152,8 +133,11 @@ in
     yazi
     awscli2
     awslogs
+    glab
     rclone
-    terraform
+    #terraform
+    opentofu
+    openjdk
 
     # networking
     nmap

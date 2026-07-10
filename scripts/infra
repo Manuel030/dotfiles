@@ -1,0 +1,385 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "click",
+#     "httpx",
+#     "rich",
+# ]
+# ///
+"""Galilea Infrastructure CLI — manage dev/test environments via MCP server."""
+
+import json
+import os
+import sys
+from datetime import datetime, timedelta
+
+import click
+import httpx
+from rich.console import Console
+from rich.table import Table
+
+MCP_URL = os.environ.get(
+    "GALILEA_INFRA_MCP_URL",
+    "https://yqu7xjf5ytqdjatmcjy3lqsez40enznh.lambda-url.eu-central-1.on.aws/mcp",
+)
+DEFAULT_USER = os.environ.get("GALILEA_INFRA_USER", os.environ.get("USER", "unknown"))
+
+console = Console()
+
+
+def call_tool(tool_name: str, arguments: dict | None = None) -> dict:
+    """Call an MCP tool via JSON-RPC over HTTP."""
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {"name": tool_name, "arguments": arguments or {}},
+    }
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    try:
+        resp = httpx.post(MCP_URL, json=payload, headers=headers, timeout=30)
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        console.print(f"[red]HTTP error {e.response.status_code}:[/red] {e.response.text}")
+        sys.exit(1)
+    except httpx.ConnectError:
+        console.print("[red]Error:[/red] Cannot connect to MCP server")
+        sys.exit(1)
+
+    data = resp.json()
+    if "error" in data:
+        console.print(f"[red]MCP error:[/red] {data['error']}")
+        sys.exit(1)
+
+    # MCP tool results come as content array
+    result = data.get("result", {})
+    if isinstance(result, dict) and "content" in result:
+        for item in result["content"]:
+            if item.get("type") == "text":
+                return json.loads(item["text"])
+    return result
+
+
+def parse_until_time(until: str) -> int:
+    """Parse a time string like '18:00' or '+2h' into minutes from now."""
+    now = datetime.now()
+    if until.startswith("+"):
+        # relative: +2h, +30m, +2h30m
+        text = until[1:]
+        minutes = 0
+        if "h" in text:
+            parts = text.split("h")
+            minutes += int(parts[0]) * 60
+            text = parts[1]
+        if "m" in text and text.replace("m", ""):
+            minutes += int(text.replace("m", ""))
+        elif not "h" in until[1:]:
+            minutes = int(text) if text else minutes
+        return max(minutes, 1)
+    else:
+        # absolute time: "18:00" or "18"
+        if ":" in until:
+            hour, minute = map(int, until.split(":"))
+        else:
+            hour, minute = int(until), 0
+        target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if target <= now:
+            target += timedelta(days=1)
+        diff = (target - now).total_seconds() / 60
+        return max(int(diff), 1)
+
+
+STATUS_ICONS = {
+    "running": "🟢",
+    "stopped": "⚪",
+    "starting": "🟡",
+    "stopping": "🟠",
+    "partial": "🟡",
+}
+
+
+@click.group()
+@click.version_option("1.0.0", prog_name="galilea-infra")
+def cli():
+    """Galilea Infrastructure Manager — start, stop, and monitor environments."""
+    pass
+
+
+@cli.command()
+def status():
+    """Show status of all infrastructure groups."""
+    data = call_tool("infra_list_groups")
+    groups = data.get("groups", [])
+
+    table = Table(title="Infrastructure Groups")
+    table.add_column("Status", width=3)
+    table.add_column("Group", style="bold")
+    table.add_column("Resources", justify="right")
+    table.add_column("Running", justify="right")
+    table.add_column("Remaining")
+    table.add_column("User")
+
+    for g in groups:
+        icon = STATUS_ICONS.get(g["status"], "❓")
+        is_active = g["status"] in ("running", "partial")
+        style = "green" if g["status"] == "running" else ("yellow" if g["status"] == "partial" else "dim")
+        resources = f"{g['resources']['ec2']}ec2 + {g['resources']['ecs']}ecs"
+        running = f"{g['running']}/{g['resources']['total']}"
+
+        # Active request info
+        req = g.get("activeRequest", {})
+        remaining = ""
+        user = ""
+        if req:
+            mins = req.get("remainingMinutes", 0)
+            hours, m = divmod(mins, 60)
+            remaining = f"{hours}h{m:02d}m" if hours else f"{m}m"
+            user = req.get("requestedBy", "")
+
+        table.add_row(icon, g["name"], resources, running, remaining, user, style=style)
+
+    console.print(table)
+
+
+@cli.command()
+@click.argument("group", default="galileaDev")
+@click.option("--until", "-u", help="Run until time (e.g. '18:00', '+2h', '+30m')")
+@click.option("--duration", "-d", type=int, help="Duration in minutes")
+@click.option("--user", "-U", default=DEFAULT_USER, help="Requesting user")
+def start(group: str, until: str | None, duration: int | None, user: str):
+    """Start an infrastructure group.
+
+    GROUP defaults to 'galileaDev'. Specify duration with --until or --duration.
+    """
+    if until:
+        minutes = parse_until_time(until)
+    elif duration:
+        minutes = duration
+    else:
+        minutes = 240  # default 4h
+
+    # MCP server max is 240 per request — start then extend if needed
+    initial = min(minutes, 240)
+    remaining = minutes - initial
+
+    console.print(f"Starting [bold]{group}[/bold] for {minutes} min (~{minutes / 60:.1f}h)...")
+
+    result = call_tool("infra_start", {
+        "group_name": group,
+        "duration": initial,
+        "requested_by": user,
+    })
+
+    if result.get("status") == "ok":
+        expires = result.get("activation", {}).get("expiresAt", "unknown")
+        cost = result.get("cost", {}).get("estimatedCostEur", 0)
+        console.print(f"[green]✓[/green] Started! Expires: {expires}")
+        console.print(f"  Estimated cost: €{cost:.2f}")
+
+        # Extend if we need more than 240 min
+        if remaining > 0:
+            ext_result = call_tool("infra_extend", {
+                "group_name": group,
+                "additional_minutes": remaining,
+                "requested_by": user,
+            })
+            if ext_result.get("status") == "ok":
+                new_expiry = ext_result.get("newExpiry", "unknown")
+                console.print(f"[green]✓[/green] Extended by {remaining} min. New expiry: {new_expiry}")
+            else:
+                console.print(f"[yellow]⚠[/yellow] Extension failed: {ext_result}")
+    else:
+        console.print(f"[red]✗[/red] Failed: {result}")
+
+
+@cli.command()
+@click.argument("group", default="galileaDev")
+@click.option("--user", "-U", default=DEFAULT_USER, help="Requesting user")
+def stop(group: str, user: str):
+    """Stop an infrastructure group."""
+    console.print(f"Stopping [bold]{group}[/bold]...")
+    result = call_tool("infra_cancel", {"group_name": group, "requested_by": user})
+    if result.get("status") == "ok":
+        console.print(f"[green]✓[/green] Stopped.")
+    else:
+        console.print(f"[red]✗[/red] {result}")
+
+
+@cli.command()
+@click.argument("group", default="galileaDev")
+@click.option("--minutes", "-m", type=int, help="Additional minutes")
+@click.option("--until", "-u", help="Extend until time (e.g. '19:00', '+1h')")
+@click.option("--user", "-U", default=DEFAULT_USER, help="Requesting user")
+def extend(group: str, minutes: int | None, until: str | None, user: str):
+    """Extend a running infrastructure group."""
+    if until:
+        additional = parse_until_time(until)
+    elif minutes:
+        additional = minutes
+    else:
+        additional = 60  # default 1h
+
+    console.print(f"Extending [bold]{group}[/bold] by {additional} min...")
+    result = call_tool("infra_extend", {
+        "group_name": group,
+        "additional_minutes": additional,
+        "requested_by": user,
+    })
+    if result.get("status") == "ok":
+        new_expiry = result.get("newExpiry", "unknown")
+        console.print(f"[green]✓[/green] Extended. New expiry: {new_expiry}")
+    else:
+        console.print(f"[red]✗[/red] {result}")
+
+
+@cli.command()
+@click.argument("group", default="galileaDev")
+@click.option("--duration", "-d", type=int, default=240, help="Duration in minutes for cost estimate")
+def cost(group: str, duration: int):
+    """Preview cost for running a group."""
+    result = call_tool("infra_cost_preview", {"group_name": group, "duration": duration})
+
+    if "cost" in result:
+        c = result["cost"]
+        console.print(f"[bold]{group}[/bold] for {duration} min:")
+        console.print(f"  Total: €{c.get('estimatedCostEur', 0):.2f}")
+        console.print(f"  Hourly: €{c.get('hourlyRateEur', 0):.4f}/h")
+        if "breakdown" in c:
+            table = Table(title="Cost Breakdown")
+            table.add_column("Resource")
+            table.add_column("Type")
+            table.add_column("€/h", justify="right")
+            for item in c["breakdown"]:
+                table.add_row(item["resource"], item["type"], f"{item['hourlyEur']:.4f}")
+            console.print(table)
+    else:
+        console.print(f"Response: {result}")
+
+
+@cli.command()
+def requests():
+    """List active infrastructure requests."""
+    data = call_tool("infra_list_requests")
+    reqs = data.get("requests", [])
+    if not reqs:
+        console.print("[dim]No active requests.[/dim]")
+        return
+
+    table = Table(title=f"Active Requests ({len(reqs)})")
+    table.add_column("Group")
+    table.add_column("User")
+    table.add_column("Duration")
+    table.add_column("Boost")
+    table.add_column("Created")
+    table.add_column("Expires")
+    for r in reqs:
+        # Parse expiry from epoch
+        expires = ""
+        if "until_epoch" in r:
+            exp_dt = datetime.fromtimestamp(r["until_epoch"])
+            expires = exp_dt.strftime("%H:%M")
+        # Parse created_at
+        created = ""
+        if "created_at" in r:
+            created = r["created_at"][11:16]  # HH:MM from ISO string
+        # Duration
+        dur = r.get("duration_minutes", "?")
+        dur_str = f"{dur}m" if isinstance(dur, int) else str(dur)
+        # Boost
+        boost = "⚡" if r.get("boost_mode") else ""
+
+        table.add_row(
+            r.get("group", "?"),
+            r.get("requested_by", "?"),
+            dur_str,
+            boost,
+            created,
+            expires,
+        )
+    console.print(table)
+
+
+@cli.command()
+@click.argument("group", default="galileaDev")
+@click.option("--json-output", "-j", is_flag=True, help="Output raw JSON")
+def info(group: str, json_output: bool):
+    """Show detailed status for a group."""
+    result = call_tool("infra_status", {"group_name": group})
+
+    if json_output:
+        console.print_json(json.dumps(result, indent=2, default=str))
+        return
+
+    overall = result.get("overall", "unknown")
+    icon = STATUS_ICONS.get(overall, "❓")
+    console.print(f"\n{icon} [bold]{group}[/bold] — {overall}\n")
+
+    # EC2 instances
+    ec2 = result.get("ec2Instances", [])
+    if ec2:
+        table = Table(title="EC2 Instances")
+        table.add_column("Status", width=3)
+        table.add_column("Name")
+        table.add_column("Type")
+        table.add_column("Zone")
+        for inst in ec2:
+            st_icon = "🟢" if inst["state"] == "running" else "⚪"
+            style = "green" if inst["state"] == "running" else "dim"
+            table.add_row(st_icon, inst["name"], inst.get("instanceType", ""), inst.get("zone", ""), style=style)
+        console.print(table)
+
+    # ECS services
+    ecs = result.get("ecsServices", [])
+    if ecs:
+        table = Table(title="ECS Services")
+        table.add_column("Status", width=3)
+        table.add_column("Name")
+        table.add_column("Cluster")
+        table.add_column("Running", justify="right")
+        table.add_column("Desired", justify="right")
+        for svc in ecs:
+            st_icon = "🟢" if svc["state"] == "running" else "⚪"
+            style = "green" if svc["state"] == "running" else "dim"
+            table.add_row(
+                st_icon,
+                svc["name"],
+                svc.get("cluster", ""),
+                str(svc.get("runningCount", 0)),
+                str(svc.get("desiredCount", 0)),
+                style=style,
+            )
+        console.print(table)
+
+
+@cli.command()
+@click.option("--until", "-u", help="Boost until time (e.g. '14:00', '+1h')")
+@click.option("--duration", "-d", type=int, help="Boost duration in minutes (5-240)")
+@click.option("--user", "-U", default=DEFAULT_USER, help="Requesting user")
+def boost(until: str | None, duration: int | None, user: str):
+    """Boost GitLab CI/CD runners for faster pipelines."""
+    if until:
+        minutes = parse_until_time(until)
+    elif duration:
+        minutes = duration
+    else:
+        minutes = 30  # default 30 min boost
+
+    minutes = max(5, min(minutes, 240))  # clamp to 5-240
+
+    console.print(f"Boosting runners for [bold]{minutes} min[/bold]...")
+    result = call_tool("infra_boost_runner", {
+        "duration": minutes,
+        "requested_by": user,
+    })
+
+    if result.get("status") == "ok":
+        console.print(f"[green]✓[/green] Runners boosted! ⚡")
+        if "expiresAt" in result:
+            console.print(f"  Expires: {result['expiresAt']}")
+    else:
+        console.print(f"[green]✓[/green] {result.get('message', result)}")
+
+
+if __name__ == "__main__":
+    cli()
