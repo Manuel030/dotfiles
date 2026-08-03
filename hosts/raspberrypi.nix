@@ -17,8 +17,5 @@
   home.homeDirectory = "/home/manuel";
   home.stateVersion = "26.05";
 
-  # pi-coding-agent ships its own node runtime here. Its installer cannot patch
-  # ~/.bashrc (Home Manager owns it), so the PATH entry lives here instead.
-  # "current" is a stable symlink, so node upgrades don't break it.
   home.sessionPath = [ "$HOME/.local/share/pi-node/current/bin" ];
 }
