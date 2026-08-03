@@ -113,7 +113,7 @@ in
     uv
     rustc
     rustup
-    nodejs
+    nodejs_26
     pnpm
     kubectl
     gnumake
@@ -140,6 +140,7 @@ in
     #terraform
     opentofu
     openjdk
+    agent-browser
 
     # networking
     nmap
