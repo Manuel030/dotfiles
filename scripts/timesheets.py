@@ -18,9 +18,76 @@ import requests
 GITLAB_USER = "manuelpland"
 HARVEST_ACCOUNT_ID = "147488"
 HARVEST_USER_ID = "5087166"
-HARVEST_PROJECT_ID = "47096931"  # Palma
-HARVEST_TASK_ID = "15929584"    # Entwicklung
 HOURS_PER_DAY = 8
+
+# Harvest projects by alias. The first task of each project is its default.
+# Projects with "gitlab_notes": False get no GitLab activity summary as notes.
+PROJECTS = {
+    "palma": {
+        "id": "47096931",  # Palma (Central Django App) 2026
+        "tasks": {"entwicklung": "15929584", "deployment": "16997000", "konzeption": "9113461"},
+    },
+    "galilea": {
+        "id": "47096917",  # Galilea (Infrastruktur und Schnittstellen) 2026
+        "tasks": {"entwicklung": "15929584", "konzeption": "9113461"},
+    },
+    "claret": {
+        "id": "47096943",  # Claret (App Frontend) 2026
+        "tasks": {"frontend": "18304391", "ux": "18157282"},
+    },
+    "technotrans": {
+        "id": "49162195",  # KI-assistierte Trouble-Ticket-Optimierung
+        "tasks": {
+            "entwickeln": "27237515",
+            "entwerfen": "27237514",
+            "etablieren": "27237516",
+            "pm": "27237517",
+        },
+    },
+    "pharma-ki": {
+        "id": "48362192",  # Pharma Logistik: KI Tech Team
+        "tasks": {
+            "weiterentwicklung": "26790230",
+            "usecases": "26790229",
+            "pipelines": "26790231",
+            "betrieb": "26790228",
+            "bugfix": "26790232",
+            "pm": "26790227",
+            "redundanz": "26790233",
+        },
+    },
+    "pharma-temp": {
+        "id": "46184538",  # Pharma Logistik: Temperaturkontrolle
+        "tasks": {
+            "backend": "18304378",
+            "frontend": "18304391",
+            "datenanalyse": "25351118",
+            "konzeption": "9113461",
+            "ui": "25351117",
+            "pm": "24259882",
+            "workshops": "25351119",
+        },
+    },
+    "dorfner": {
+        "id": "47412255",  # Dorfner: KI Tech-Team 2026/2027 (pass other task IDs directly)
+        "tasks": {"planung": "22491771", "research": "22475673", "pm": "12307588"},
+    },
+    "intern": {
+        "id": "47231250",  # PLAN D: AI-Team, interne Aufwände 2026
+        "tasks": {
+            "fue": "11279620",
+            "meetings": "15697363",
+            "einarbeitung": "15562440",
+            "team": "15732816",
+        },
+    },
+    "abwesend": {
+        "id": "47231300",  # PLAN D: Urlaub, Feiertag oder krankheitsbedingter Ausfall 2026
+        "tasks": {"urlaub": "9045634", "feiertag": "19504081", "krank": "19210135"},
+        "gitlab_notes": False,
+    },
+}
+DEFAULT_PROJECT = "palma"
 
 # Environment Variables
 GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
@@ -45,7 +112,7 @@ def get_gitlab_activity(target_date: date) -> str:
     # 1. Fetch GitLab Events
     try:
         gitlab_url = (
-            f"https://gitlab.com/api/v4/users/{GITLAB_USER}/events"
+            f"https://git.plan-d.com/api/v4/users/{GITLAB_USER}/events"
             f"?after={after_date.isoformat()}&before={before_date.isoformat()}&per_page=100"
         )
         headers = {"PRIVATE-TOKEN": GITLAB_TOKEN}
@@ -92,7 +159,7 @@ def get_gitlab_activity(target_date: date) -> str:
         return "Error parsing AI response."
 
 
-def log_harvest_time(spent_date: date):
+def log_harvest_time(spent_date: date, project: str, task_id: str):
     """
     Logs a time entry to Harvest for a specific date.
     """
@@ -101,14 +168,16 @@ def log_harvest_time(spent_date: date):
         sys.exit(1)
 
     iso_date = spent_date.isoformat()
-    print(f"Fetching activity for {iso_date}...")
-    notes = get_gitlab_activity(spent_date)
-    print(f"  -> Notes: {notes}")
+    notes = ""
+    if PROJECTS[project].get("gitlab_notes", True):
+        print(f"Fetching activity for {iso_date}...")
+        notes = get_gitlab_activity(spent_date)
+        print(f"  -> Notes: {notes}")
 
     payload = {
         "user_id": HARVEST_USER_ID,
-        "project_id": HARVEST_PROJECT_ID,
-        "task_id": HARVEST_TASK_ID,
+        "project_id": PROJECTS[project]["id"],
+        "task_id": task_id,
         "spent_date": iso_date,
         "notes": notes,
         "hours": HOURS_PER_DAY,
@@ -127,7 +196,7 @@ def log_harvest_time(spent_date: date):
             timeout=10,
         )
         response.raise_for_status()
-        print(f"Time entry successfully logged for {iso_date}")
+        print(f"Time entry successfully logged for {iso_date} ({project})")
     except requests.RequestException as e:
         print(f"Error logging time to Harvest: {e}", file=sys.stderr)
         if 'response' in locals():
@@ -144,6 +213,23 @@ def validate_iso_date(date_string: str) -> date:
         )
 
 
+def resolve_task(project: str, task: str | None) -> str:
+    """Returns the Harvest task ID for a task alias or raw ID, defaulting to the project's first task."""
+    tasks = PROJECTS[project]["tasks"]
+    if task is None:
+        return next(iter(tasks.values()))
+    if task in tasks:
+        return tasks[task]
+    if task.isdigit():
+        return task
+    print(
+        f"Error: Unknown task '{task}' for project '{project}'. "
+        f"Choose from: {', '.join(tasks)} or pass a numeric task ID.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
 def main():
     """Main script logic to parse arguments and log time."""
     parser = argparse.ArgumentParser(
@@ -151,7 +237,12 @@ def main():
         epilog="""Examples:
   %(prog)s                          # Log time for today
   %(prog)s 2025-06-25               # Log time for a specific date
-  %(prog)s 2025-06-20 2025-06-25    # Log time for a date range (inclusive)""",
+  %(prog)s 2025-06-20 2025-06-25    # Log time for a date range (inclusive)
+  %(prog)s -p technotrans           # Log time to another project (default task)
+  %(prog)s -p abwesend -t urlaub 2025-06-20 2025-06-25
+
+Projects and tasks (first task is the default):
+""" + "\n".join(f"  {name}: {', '.join(p['tasks'])}" for name, p in PROJECTS.items()),
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -167,7 +258,20 @@ def main():
         type=validate_iso_date,
         help="End date in YYYY-MM-DD format (inclusive). If omitted, only start_date is used.",
     )
+    parser.add_argument(
+        "-p",
+        "--project",
+        choices=PROJECTS,
+        default=DEFAULT_PROJECT,
+        help=f"Harvest project alias. Defaults to {DEFAULT_PROJECT}.",
+    )
+    parser.add_argument(
+        "-t",
+        "--task",
+        help="Task alias or numeric Harvest task ID. Defaults to the project's first task.",
+    )
     args = parser.parse_args()
+    task_id = resolve_task(args.project, args.task)
 
     start = args.start_date
     end = args.end_date if args.end_date else start
@@ -178,7 +282,7 @@ def main():
 
     current_date = start
     while current_date <= end:
-        log_harvest_time(current_date)
+        log_harvest_time(current_date, args.project, task_id)
         current_date += timedelta(days=1)
         if current_date <= end:
             print("-" * 20)

@@ -22,6 +22,7 @@
     awscli2
     awslogs
     kubectl
+    k9s
     opentofu
     #terraform
     cloudflared
