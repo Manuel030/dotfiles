@@ -27,6 +27,7 @@
     #terraform
     cloudflared
     ngrok
+    kubernetes-helm
 
     # agents
     claude-code
